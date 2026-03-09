@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>虚拟列表 - 动态高度 Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        color: #333;
+      }
+      .info {
+        text-align: center;
+        color: #666;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .list-container {
+        width: 100%;
+        height: 400px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        overflow-y: auto;
+        position: relative;
+      }
+      /* phantom 用于撑起滚动条，让容器有可滚动的高度 */
+      .list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1;
+      }
+      /* content 是真正渲染列表项的容器，通过 transform 移动位置 */
+      .list-content {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+      }
+      .list-item {
+        display: flex;
+        flex-direction: column;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+      }
+      .list-item:hover {
+        background: #f5f5f5;
+      }
+      .item-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .item-index {
+        font-weight: bold;
+        color: #1890ff;
+        font-size: 14px;
+      }
+      .item-tag {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: #e6f7ff;
+        color: #1890ff;
+      }
+      .item-content {
+        color: #333;
+        line-height: 1.6;
+      }
+      .stats {
+        margin-top: 15px;
+        padding: 12px;
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #52c41a;
+      }
+      .approach {
+        margin-top: 15px;
+        padding: 12px;
+        background: #e6f7ff;
+        border: 1px solid #91d5ff;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #096dd9;
+      }
+      .approach h3 {
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .approach ul {
+        margin-left: 18px;
+      }
+      .approach li {
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>虚拟列表 - 动态高度</h1>
+      <p class="info">子元素高度不固定，使用预估高度 + 缓存实际高度</p>
+
+      <!-- 列表容器：固定高度，overflow-y: auto 产生滚动条 -->
+      <div class="list-container" id="listContainer">
+        <!-- phantom：透明占位元素，高度 = 所有项的总高度，用于撑起滚动条 -->
+        <div class="list-phantom" id="phantom"></div>
+        <!-- content：实际渲染可见列表项的容器，通过 translateY 移动到正确位置 -->
+        <div class="list-content" id="content"></div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="approach">
+        <h3>🎯 动态高度处理方案</h3>
+        <ul>
+          <li><strong>预估高度：</strong>先给一个预估高度，渲染后测量实际高度</li>
+          <li><strong>缓存高度：</strong>用数组/Map缓存每个元素的实际高度</li>
+          <li><strong>累加计算：</strong>通过前缀和快速计算任意位置的偏移量</li>
+          <li><strong>滚动修正：</strong>高度变化时修正滚动位置，避免跳动</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // ==================== 第1步：配置与初始化 ====================
+
+      const TOTAL_COUNT = 10000; // 总数据量：模拟 1 万条数据
+      const ESTIMATED_HEIGHT = 80; // 预估高度：每项先假设 80px 高（实际可能不同）
+      const BUFFER_SIZE = 3; // 缓冲区：上下多渲染 3 项，避免滚动时白屏
+
+      // 生成模拟数据（内容长度随机，导致每项实际高度不同）
+      const data = Array.from({ length: TOTAL_COUNT }, (_, i) => {
+        const lineCount = Math.floor(Math.random() * 5) + 1; // 随机 1-5 行内容
+        const content = Array.from(
+          { length: lineCount },
+          (_, j) => `这是第 ${i + 1} 条数据的第 ${j + 1} 行内容，动态高度虚拟列表演示。`,
+        ).join('');
+        return {
+          id: i,
+          content: content,
+          lines: lineCount,
+        };
+      });
+
+      // 获取 DOM 元素引用
+      const container = document.getElementById('listContainer'); // 滚动容器
+      const phantom = document.getElementById('phantom'); // 占位元素（撑起滚动条）
+      const content = document.getElementById('content'); // 实际内容容器
+      const stats = document.getElementById('stats'); // 统计信息显示
+
+      // ==================== 第2步：高度缓存系统（核心） ====================
+
+      /**
+       * heightCache 数组用于存储每项的实际高度
+       * - heightCache[i] = 0 表示第 i 项尚未测量
+       * - heightCache[i] > 0 表示第 i 项已测量，值为实际像素高度
+       *
+       * 为什么需要缓存？
+       * 1. 避免重复测量，提升性能
+       * 2. 滚动回来时已测量的项不需要重新计算
+       * 3. 用于计算总高度和任意位置的偏移量
+       */
+      const heightCache = new Array(TOTAL_COUNT).fill(0);
+
+      /**
+       * 计算从第 0 项到第 index-1 项的累计高度（前缀和）
+       * 用途：快速获取第 index 项应该出现的 Y 坐标位置
+       *
+       * 例如：
+       * - 第 0 项高度 50px，第 1 项高度 80px
+       * - getAccumulatedHeight(2) = 50 + 80 = 130px（第 2 项的偏移量）
+       *
+       * 注意：如果某项未测量（heightCache[i] = 0），使用预估高度 ESTIMATED_HEIGHT
+       */
+      function getAccumulatedHeight(index) {
+        let sum = 0;
+        for (let i = 0; i < index; i++) {
+          sum += heightCache[i] || ESTIMATED_HEIGHT; // 已测量用实际高度，未测量用预估高度
+        }
+        return sum;
+      }
+
+      /**
+       * 获取所有项的总高度
+       * 用于设置 phantom 的高度，撑起整个滚动条
+       */
+      function getTotalHeight() {
+        return getAccumulatedHeight(TOTAL_COUNT);
+      }
+
+      // ==================== 第3步：二分查找定位（核心） ====================
+
+      /**
+       * 二分查找：根据滚动位置 scrollTop 快速找到应该显示的第一项索引
+       *
+       * 为什么用二分查找？
+       * - 线性查找 O(n) 太慢，二分查找 O(log n) 性能更好
+       * - 例如 10 万条数据，线性查找最多 10 万次，二分查找最多 17 次
+       *
+       * 查找逻辑：
+       * - 找到最小的索引 i，使得 getAccumulatedHeight(i) >= scrollTop
+       * - 即第 i 项的顶部刚好在可视区域内或刚好超过滚动位置
+       */
+      function findStartIndex(scrollTop) {
+        let left = 0;
+        let right = TOTAL_COUNT - 1;
+
+        while (left < right) {
+          const mid = Math.floor((left + right) / 2); // 取中间索引
+          const midOffset = getAccumulatedHeight(mid); // 计算中间项的偏移量
+
+          if (midOffset < scrollTop) {
+            // 中间项的偏移量 < 滚动位置，说明目标在右半部分
+            left = mid + 1;
+          } else {
+            // 中间项的偏移量 >= 滚动位置，说明目标在左半部分（包含 mid）
+            right = mid;
+          }
+        }
+
+        return left;
+      }
+
+      // ==================== 第4步：渲染函数（核心逻辑） ====================
+
+      function render() {
+        // 4.1 获取当前滚动状态和容器尺寸
+        const scrollTop = container.scrollTop; // 当前滚动距离（像素）
+        const containerHeight = container.clientHeight; // 容器可视高度（400px）
+
+        // 4.2 计算可见区域的起始索引
+        // 使用二分查找快速定位，然后减去 BUFFER_SIZE 作为上缓冲区
+        let startIndex = findStartIndex(scrollTop);
+        startIndex = Math.max(0, startIndex - BUFFER_SIZE); // 不能小于 0
+
+        // 4.3 计算可见区域的结束索引
+        // 从 startIndex 开始累加高度，直到超过容器高度 + 缓冲区
+        let endIndex = startIndex;
+        let currentHeight = 0;
+        while (
+          endIndex < TOTAL_COUNT &&
+          currentHeight < containerHeight + ESTIMATED_HEIGHT * BUFFER_SIZE * 2
+        ) {
+          currentHeight += heightCache[endIndex] || ESTIMATED_HEIGHT;
+          endIndex++;
+        }
+        endIndex = Math.min(TOTAL_COUNT, endIndex + BUFFER_SIZE); // 不能超过总数
+
+        // 4.4 计算偏移量
+        // offsetY 是 content 容器需要向上移动的距离，让第 startIndex 项刚好出现在正确位置
+        const offsetY = getAccumulatedHeight(startIndex);
+
+        // 4.5 更新 phantom 高度
+        // phantom 的高度必须等于所有项的总高度，否则滚动条长度不正确
+        phantom.style.height = `${getTotalHeight()}px`;
+
+        // 4.6 渲染可见区域的列表项
+        const visibleData = data.slice(startIndex, endIndex); // 截取需要渲染的数据
+        content.style.transform = `translateY(${offsetY}px)`; // 整体下移，模拟滚动效果
+
+        // 生成 HTML：只渲染可见区域内的项
+        content.innerHTML = visibleData
+          .map((item, idx) => {
+            const realIndex = startIndex + idx; // 真实数据索引
+            const measuredHeight = heightCache[realIndex]; // 是否已测量高度
+
+            return `
+          <div class="list-item" data-index="${realIndex}"
+               style="${measuredHeight ? `height: ${measuredHeight}px` : ''}">
+            <div class="item-header">
+              <span class="item-index">#${item.id + 1}</span>
+              <span class="item-tag">${item.lines} 行内容</span>
+              ${measuredHeight ? `<span class="item-tag" style="background:#f6ffed;color:#52c41a">实测: ${measuredHeight}px</span>` : ''}
+            </div>
+            <div class="item-content">${item.content}</div>
+          </div>
+        `;
+          })
+          .join('');
+
+        // ==================== 第5步：测量并缓存实际高度（关键） ====================
+
+        /**
+         * 使用 requestAnimationFrame 确保 DOM 已经渲染完成后再测量
+         * 这样可以获取到准确的实际高度
+         */
+        requestAnimationFrame(() => {
+          const items = content.querySelectorAll('.list-item'); // 获取所有刚渲染的项
+          let hasNewMeasurement = false;
+
+          items.forEach((item) => {
+            const index = parseInt(item.dataset.index); // 获取数据索引
+            const measuredHeight = item.getBoundingClientRect().height; // 测量实际高度
+
+            // 如果测量到的新高度与缓存不同，更新缓存
+            if (heightCache[index] !== measuredHeight) {
+              heightCache[index] = measuredHeight;
+              hasNewMeasurement = true;
+            }
+          });
+
+          // 如果有新的测量值，重新计算并更新 phantom 高度
+          // 这会导致滚动条长度微调，但用户感知不明显
+          if (hasNewMeasurement) {
+            phantom.style.height = `${getTotalHeight()}px`;
+          }
+        });
+
+        // 4.7 更新统计信息（用于观察效果）
+        const measuredCount = heightCache.filter((h) => h > 0).length;
+        stats.innerHTML = `
+        <strong>动态高度渲染统计：</strong><br>
+        总数据量：${TOTAL_COUNT.toLocaleString()} 条<br>
+        渲染元素：${visibleData.length} 个<br>
+        已测量高度：${measuredCount} 条 (${((measuredCount / TOTAL_COUNT) * 100).toFixed(1)}%)<br>
+        预估高度：${ESTIMATED_HEIGHT}px | 实际总高度：${Math.round(getTotalHeight()).toLocaleString()}px
+      `;
+      }
+
+      // ==================== 第6步：滚动事件处理 ====================
+
+      /**
+       * 使用 requestAnimationFrame 节流滚动事件
+       * 避免滚动时频繁触发 render 导致性能问题
+       *
+       * 原理：
+       * - ticking = true 表示正在等待下一帧渲染
+       * - 滚动事件触发时，如果 ticking 为 true，则忽略本次事件
+       * - 等到下一帧执行 render 后，ticking 设为 false，允许下一次触发
+       */
+      let ticking = false;
+      container.addEventListener('scroll', () => {
+        if (!ticking) {
+          // 下次滚动之前， 先渲染一次
+          requestAnimationFrame(() => {
+            render();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+
+      // ==================== 第7步：初始渲染 ====================
+      render();
+    </script>
+  </body>
+</html>
