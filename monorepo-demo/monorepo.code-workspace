@@ -1,0 +1,81 @@
+{
+  "folders": [
+    {
+      "name": "🏠 Root",
+      "path": "."
+    },
+    {
+      "name": "📦 Config - ESLint",
+      "path": "packages/config/eslint-config"
+    },
+    {
+      "name": "📦 Config - TSConfig",
+      "path": "packages/config/tsconfig"
+    },
+    {
+      "name": "📦 Config - Vite",
+      "path": "packages/config/vite-config"
+    },
+    {
+      "name": "🛠️ Shared - Utils",
+      "path": "packages/shared/utils"
+    },
+    {
+      "name": "🛠️ Shared - Types",
+      "path": "packages/shared/types"
+    },
+    {
+      "name": "🎨 UI - React",
+      "path": "packages/shared/ui-react"
+    },
+    {
+      "name": "🎨 UI - Vue",
+      "path": "packages/shared/ui-vue"
+    },
+    {
+      "name": "⚛️ App - Web (React)",
+      "path": "packages/apps/web-app"
+    },
+    {
+      "name": "🖥️ App - Admin (Vue)",
+      "path": "packages/apps/admin"
+    },
+    {
+      "name": "📱 App - Mobile H5",
+      "path": "packages/apps/mobile-h5"
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "files.associations": {
+      "*.css": "tailwindcss"
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "pnpm-lock.yaml": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true,
+      "**/.turbo/**": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "vue.volar",
+      "unifiedjs.vscode-mdx"
+    ]
+  }
+}

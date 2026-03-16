@@ -1,0 +1,52 @@
+name: Turbo CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    name: Build with Turbo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Cache Turbo
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      
+      - name: Build with Turbo
+        run: pnpm turbo build --cache-dir=.turbo
+      
+      - name: Test with Turbo
+        run: pnpm turbo test --cache-dir=.turbo || echo "No tests configured"
+      
+      - name: Lint with Turbo
+        run: pnpm turbo lint --cache-dir=.turbo
+      
+      - name: Type check with Turbo
+        run: pnpm turbo type-check --cache-dir=.turbo

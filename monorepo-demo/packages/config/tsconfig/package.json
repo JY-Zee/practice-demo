@@ -1,0 +1,13 @@
+{
+  "name": "@demo/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "description": "共享 TypeScript 配置",
+  "main": "index.json",
+  "files": [
+    "base.json",
+    "react.json",
+    "vue.json",
+    "node.json"
+  ]
+}

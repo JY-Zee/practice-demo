@@ -1,0 +1,12 @@
+# pnpm workspace 配置文件
+# 定义哪些目录是工作空间的一部分
+
+packages:
+  # 共享包:工具库、类型定义等
+  - 'packages/shared/*'
+  
+  # 配置包:ESLint、TypeScript、Vite 配置
+  - 'packages/config/*'
+  
+  # 应用包:Web、Admin、Mobile 应用
+  - 'packages/apps/*'
