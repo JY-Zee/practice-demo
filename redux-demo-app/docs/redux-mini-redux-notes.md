@@ -43,6 +43,8 @@ flowchart LR
   store -->|subscribe(listener)| view
 ```
 
+
+
 解释：
 
 1. **View 触发 dispatch**：组件中调用 `dispatch(action)`。
@@ -124,15 +126,15 @@ export function createStore<S, A>(
 - **内部状态与订阅者列表**
   - `currentState`：当前整棵 Redux 状态树，保存在闭包变量中，对外不可直接修改。
   - `listeners`：订阅者列表（通常是 React 组件的刷新函数）。
-- **`getState`**
+- `**getState`**
   - 直接返回 `currentState`。
   - 关键点：**外界无法直接改 `currentState`，只能通过 `dispatch` 改，这就是 Redux 把“修改入口统一”的核心**。
-- **`dispatch`**
+- `**dispatch`**
   - `currentState = reducer(currentState, action)`：
     - 实际的业务逻辑完全交给 reducer（纯函数），store 本身只负责「转发」和「存结果」。
   - `listeners.forEach(listener => listener())`：
     - 每次 `dispatch` 后通知所有订阅者，React 组件会在 listener 里 `setState` 触发重渲染。
-- **`subscribe`**
+- `**subscribe**`
   - 把 listener 推入 `listeners` 数组。
   - 返回一个取消订阅函数：调用时会从数组中删除这个 listener。
 - **初始化 state：`dispatch({} as A)`**
@@ -140,7 +142,7 @@ export function createStore<S, A>(
   - 通过一次“假 action”的 `dispatch`，所有 reducer 会在「state 为 undefined」时返回各自的初始值，最终组合出完整的初始根状态。
   - 正式 Redux 实现里会 dispatch 一个特殊类型 `@@redux/INIT...`，这里出于简化直接用空对象强转为 `A`。
 
-总结：**`createStore` 本质就是一个闭包对象，内部保存 `state + listeners`，并提供统一的 `dispatch` 和 `subscribe` 接口。**
+总结：`**createStore` 本质就是一个闭包对象，内部保存 `state + listeners`，并提供统一的 `dispatch` 和 `subscribe` 接口。**
 
 ```ts
 type ReducersMapObject<S, A> = {
@@ -168,7 +170,7 @@ export function combineReducers<S, A>(
 
 ### 3. `combineReducers`：把多颗小树组合成一棵大树
 
-- `ReducersMapObject<S, A>`：
+- `ReducersMapObj                                                                                          ect<S, A>`：
   - 表示「根 state 的每个字段」对应一个自己的 reducer。
   - 例如：
     ```ts
@@ -182,15 +184,14 @@ export function combineReducers<S, A>(
       todos: todosReducer,
     }
     ```
-
 - `combineReducers` 返回的是一个「根 reducer」函数 `(state, action) => newState`：
   1. `currentState = state || ({} as S)`：
-     - 第一次调用时 `state` 为 `undefined`，用空对象占位。
+    - 第一次调用时 `state` 为 `undefined`，用空对象占位。
   2. 遍历每个 key：
-     - 拿到对应的子 reducer。
-     - 取出这一块旧 state `previousSliceState`。
-     - 调用子 reducer，得到新的 `nextSliceState`。
-     - 放到 `nextState[key]` 上。
+    - 拿到对应的子 reducer。
+    - 取出这一块旧 state `previousSliceState`。
+    - 调用子 reducer，得到新的 `nextSliceState`。
+    - 放到 `nextState[key]` 上。
   3. 返回合成后的 `nextState`。
 
 这就是 Redux 的「模块化状态树」思想：**每个 slice 只关心自己的那块 state，根 reducer 负责按 key 把它们拼起来。**
@@ -200,12 +201,12 @@ export function combineReducers<S, A>(
 ## 推荐的阅读顺序
 
 1. **先读 `src/store/mini-redux.ts`（本文件所讲）**
-   - 搞清楚 `createStore` 如何保存 state、如何 dispatch、如何通知订阅者。
-   - 搞清楚 `combineReducers` 如何把多个 reducer 组合成一个根 reducer。
+  - 搞清楚 `createStore` 如何保存 state、如何 dispatch、如何通知订阅者。
+  - 搞清楚 `combineReducers` 如何把多个 reducer 组合成一个根 reducer。
 2. **再看 `src/store/classicStore.ts` + `src/components/ClassicCounter.tsx`**
-   - 看看基于 `mini-redux`，经典 Redux 写法长什么样。
+  - 看看基于 `mini-redux`，经典 Redux 写法长什么样。
 3. **最后对比 RTK 的 `counterSlice` / `todosSlice` / `rtkStore`**
-   - 感受同样的业务逻辑，在 Redux Toolkit 下代码量和思维负担都明显下降。
+  - 感受同样的业务逻辑，在 Redux Toolkit 下代码量和思维负担都明显下降。
 
 ---
 
@@ -603,16 +604,15 @@ export type AppDispatch = typeof rtkStore.dispatch
 ## 小结：classicStore vs RTK 的本质区别
 
 1. **代码结构**：
-   - classic：手动维护 action type、reducer、store 组合。
-   - RTK：`createSlice` + `configureStore` 一站式管理。
+  - classic：手动维护 action type、reducer、store 组合。
+  - RTK：`createSlice` + `configureStore` 一站式管理。
 2. **不可变更新**：
-   - classic：必须手动写 `return { ...state, ... }` / `map` / `filter`。
-   - RTK：可以“直接改”，由 Immer 自动生成不可变更新。
+  - classic：必须手动写 `return { ...state, ... }` / `map` / `filter`。
+  - RTK：可以“直接改”，由 Immer 自动生成不可变更新。
 3. **异步逻辑**：
-   - classic：往往要手动配置 thunk / saga，并自己管理三种状态（请求中 / 成功 / 失败）。
-   - RTK：`createAsyncThunk` + `extraReducers` 提供统一模式。
+  - classic：往往要手动配置 thunk / saga，并自己管理三种状态（请求中 / 成功 / 失败）。
+  - RTK：`createAsyncThunk` + `extraReducers` 提供统一模式。
 4. **推荐实践**：
-   - 经典 Redux 更适合「理解原理、读老代码」。
-   - 新项目、实际业务强烈推荐用 Redux Toolkit。
-
+  - 经典 Redux 更适合「理解原理、读老代码」。
+  - 新项目、实际业务强烈推荐用 Redux Toolkit。
 
