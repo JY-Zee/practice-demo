@@ -1,0 +1,13 @@
+{
+  "name": "vue-mini-alien-signals",
+  "version": "1.0.0",
+  "description": "Vue3.6 alien-signals 响应式系统实现原理演示",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
