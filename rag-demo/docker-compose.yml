@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.17.0
     container_name: kb_qdrant
     ports:
       - "6333:6333"
@@ -19,7 +19,7 @@ services:
       - kb_network
 
   postgres:
-    image: postgres:16
+    image: postgres:18.3
     container_name: kb_postgres
     ports:
       - "5432:5432"
@@ -32,7 +32,7 @@ services:
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kb_user}"]
+      test: ["CMD-SHELL", "pg_isready -U kb_user -d kb_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,7 +40,7 @@ services:
       - kb_network
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.6.1-alpine
     container_name: kb_redis
     ports:
       - "6379:6379"
