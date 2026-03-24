@@ -39,7 +39,11 @@ const swaggerSpec = swaggerJSDoc({
       { url: `http://localhost:${env.BACKEND_PORT}`, description: '本地开发' },
     ],
   },
-  apis: [path.resolve(__dirname, 'routers', '*.ts')],
+  // 开发用 tsx 跑 src 时为 *.ts；生产 node dist/app.js 时只有 dist/routers/*.js，单写 *.ts 会扫不到 JSDoc，Swagger 为空
+  apis: [
+    path.resolve(__dirname, 'routers', '*.ts'),
+    path.resolve(__dirname, 'routers', '*.js'),
+  ],
 });
 
 // Swagger JSON 端点
