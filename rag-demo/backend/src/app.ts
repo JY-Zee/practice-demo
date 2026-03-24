@@ -36,7 +36,7 @@ const swaggerSpec = swaggerJSDoc({
       description: '文档管理 · 摄取任务 · 知识库问答',
     },
     servers: [
-      { url: `http://localhost:${env.BACKEND_PORT}`, description: '本地开发' },
+      { url: `http://23.141.4.23:${env.BACKEND_PORT}`, description: '本地开发' },
     ],
   },
   // 开发用 tsx 跑 src 时为 *.ts；生产 node dist/app.js 时只有 dist/routers/*.js，单写 *.ts 会扫不到 JSDoc，Swagger 为空
