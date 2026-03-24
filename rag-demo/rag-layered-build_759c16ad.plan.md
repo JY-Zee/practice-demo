@@ -6,16 +6,16 @@ todos:
     content: "Step 1: 基础设施层 -- docker-compose增强 + .env.example + scripts/init_db.sql + scripts/init_qdrant.py + README第一版"
     status: completed
   - id: step2-models
-    content: "Step 2: 数据模型与配置层 -- backend/app/core + db + models + schemas + requirements.txt"
+    content: "Step 2: 数据模型与配置层 -- backend/prisma + src/config + src/schemas + package.json"
     status: pending
   - id: step3-backend
-    content: "Step 3: 后端API骨架 -- main.py + routers + services + repositories + Dockerfile"
+    content: "Step 3: 后端API骨架 -- Express + TypeScript + routers + services + repositories + Dockerfile"
     status: pending
   - id: step4-worker
-    content: "Step 4: 异步Worker层 -- Celery应用 + 5个任务 + pipeline + Dockerfile"
+    content: "Step 4: 异步Worker层 -- BullMQ + 5个任务处理器 + pipeline + Dockerfile"
     status: pending
   - id: step5-agent
-    content: "Step 5: Agent服务层 -- retriever + prompt_builder + llm_client + answer_formatter + service入口"
+    content: "Step 5: Agent服务层 -- retriever + promptBuilder + llmClient + answerFormatter + service入口"
     status: pending
   - id: step6-frontend
     content: "Step 6: 前端层 -- Next.js + Ant Design + 3个页面 + api-client + Dockerfile"
@@ -41,20 +41,20 @@ flowchart TB
   end
 
   subgraph L2 [Layer2 -- 数据模型与初始化]
-    DBModels[ORM模型与建表]
+    PrismaModels[Prisma ORM模型与迁移]
     QdrantInit[Qdrant集合初始化]
     EnvConfig[环境变量与配置]
   end
 
   subgraph L3 [Layer3 -- 后端API骨架]
-    FastAPIApp[FastAPI应用]
+    ExpressApp[Express + TypeScript应用]
     Routers[路由层]
     Services[服务层]
     Repos[数据访问层]
   end
 
   subgraph L4 [Layer4 -- 异步Worker]
-    CeleryApp[Celery应用]
+    BullMQApp[BullMQ Worker]
     ParseTask[文档解析任务]
     ChunkTask[切块任务]
     EmbedTask[Embedding任务]
@@ -114,102 +114,102 @@ flowchart TB
 
 ### Step 2: 数据模型与配置层 (Models & Config)
 
-**聚焦模块**: `backend/app/core/` + `backend/app/db/` + `backend/app/models/` + `backend/app/schemas/`
+**聚焦模块**: `backend/prisma/` + `backend/src/config/` + `backend/src/schemas/`
 
 **做什么**:
 
-- 初始化 `backend/` Python 项目，创建 `requirements.txt` / `pyproject.toml`
-- 实现配置管理 `core/config.py`（用 pydantic-settings 读 .env）
-- 实现数据库会话 `db/session.py`（SQLAlchemy async engine + sessionmaker）
-- 定义 4 张核心 ORM 模型:
-  - `models/document.py` -- documents 表
-  - `models/chunk.py` -- document_chunks 表
-  - `models/task.py` -- ingestion_tasks 表
-  - `models/chat.py` -- chat_messages 表
-- 定义对应的 Pydantic schemas（请求/响应 DTO）
-- 实现 `db/init_db.py`（用 Alembic 或 metadata.create_all 建表）
+- 初始化 `backend/` Node.js + TypeScript 项目，创建 `package.json` + `tsconfig.json`
+- 实现配置管理 `src/config/env.ts`（用 dotenv + Zod 验证环境变量）
+- 配置 Prisma ORM，连接 PostgreSQL
+- 定义 4 张核心数据模型（在 `prisma/schema.prisma` 中）:
+  - `Document` -- documents 表
+  - `DocumentChunk` -- document_chunks 表
+  - `IngestionTask` -- ingestion_tasks 表
+  - `ChatMessage` -- chat_messages 表
+- 用 Zod 定义请求/响应 schemas（替代 Pydantic）
+- 通过 `prisma migrate dev` 执行数据库迁移建表
 
 **新增文件**:
 
-- [backend/requirements.txt](rag-demo/backend/requirements.txt)
-- [backend/app/init.py](rag-demo/backend/app/__init__.py)
-- [backend/app/core/config.py](rag-demo/backend/app/core/config.py)
-- [backend/app/db/session.py](rag-demo/backend/app/db/session.py)
-- [backend/app/db/init_db.py](rag-demo/backend/app/db/init_db.py)
-- [backend/app/models/document.py](rag-demo/backend/app/models/document.py)
-- [backend/app/models/chunk.py](rag-demo/backend/app/models/chunk.py)
-- [backend/app/models/task.py](rag-demo/backend/app/models/task.py)
-- [backend/app/models/chat.py](rag-demo/backend/app/models/chat.py)
-- [backend/app/schemas/](rag-demo/backend/app/schemas/)
+- [backend/package.json](rag-demo/backend/package.json)
+- [backend/tsconfig.json](rag-demo/backend/tsconfig.json)
+- [backend/prisma/schema.prisma](rag-demo/backend/prisma/schema.prisma)
+- [backend/src/config/env.ts](rag-demo/backend/src/config/env.ts)
+- [backend/src/schemas/document.ts](rag-demo/backend/src/schemas/document.ts)
+- [backend/src/schemas/chunk.ts](rag-demo/backend/src/schemas/chunk.ts)
+- [backend/src/schemas/task.ts](rag-demo/backend/src/schemas/task.ts)
+- [backend/src/schemas/chat.ts](rag-demo/backend/src/schemas/chat.ts)
 
-**验证标准**: 可以通过 `python -m app.db.init_db` 连接 Postgres 并成功建表，`config.py` 能正确读取 `.env`。
+**验证标准**: 通过 `npx prisma migrate dev` 连接 Postgres 并成功建表，`env.ts` 能正确读取并校验 `.env`。
 
 ---
 
 ### Step 3: 后端 API 骨架 (Backend API)
 
-**聚焦模块**: `backend/app/main.py` + `backend/app/routers/` + `backend/app/services/` + `backend/app/repositories/`
+**聚焦模块**: `backend/src/app.ts` + `backend/src/routers/` + `backend/src/services/` + `backend/src/repositories/`
 
 **做什么**:
 
-- 创建 FastAPI 应用入口 `main.py`（含 CORS、异常处理中间件、生命周期事件）
-- 创建 `Dockerfile` 用于后端容器化
-- 实现数据访问层 `repositories/`（封装 CRUD）
-- 实现业务服务层 `services/`（document_service, task_service, chat_service）
+- 创建 Express + TypeScript 应用入口 `src/app.ts`（含 CORS、错误处理中间件、graceful shutdown）
+- 集成 swagger-jsdoc + swagger-ui-express 生成 API 文档
+- 创建 `Dockerfile`（基于 Node.js 20-alpine 多阶段构建）
+- 实现数据访问层 `repositories/`（基于 Prisma Client 封装 CRUD）
+- 实现业务服务层 `services/`（documentService, taskService, chatService）
 - 实现路由层:
-  - `routers/health.py` -- `GET /api/health`
-  - `routers/documents.py` -- `POST /api/documents/upload`, `GET /api/documents`, `GET /api/documents/{id}`
-  - `routers/tasks.py` -- `GET /api/tasks/{id}`
-  - `routers/chat.py` -- `POST /api/chat/ask`（此时先返回 mock 数据）
+  - `routers/health.ts` -- `GET /api/health`
+  - `routers/documents.ts` -- `POST /api/documents/upload`（用 multer 处理文件上传）, `GET /api/documents`, `GET /api/documents/:id`
+  - `routers/tasks.ts` -- `GET /api/tasks/:id`
+  - `routers/chat.ts` -- `POST /api/chat/ask`（此时先返回 mock 数据）
 - 更新 `docker-compose.yml` 加入 backend 服务
 
 **新增/修改文件**:
 
-- [backend/app/main.py](rag-demo/backend/app/main.py)
+- [backend/src/app.ts](rag-demo/backend/src/app.ts)
 - [backend/Dockerfile](rag-demo/backend/Dockerfile)
-- [backend/app/routers/health.py](rag-demo/backend/app/routers/health.py)
-- [backend/app/routers/documents.py](rag-demo/backend/app/routers/documents.py)
-- [backend/app/routers/tasks.py](rag-demo/backend/app/routers/tasks.py)
-- [backend/app/routers/chat.py](rag-demo/backend/app/routers/chat.py)
-- [backend/app/services/](rag-demo/backend/app/services/)
-- [backend/app/repositories/](rag-demo/backend/app/repositories/)
+- [backend/src/routers/health.ts](rag-demo/backend/src/routers/health.ts)
+- [backend/src/routers/documents.ts](rag-demo/backend/src/routers/documents.ts)
+- [backend/src/routers/tasks.ts](rag-demo/backend/src/routers/tasks.ts)
+- [backend/src/routers/chat.ts](rag-demo/backend/src/routers/chat.ts)
+- [backend/src/services/](rag-demo/backend/src/services/)
+- [backend/src/repositories/](rag-demo/backend/src/repositories/)
 - [docker-compose.yml](rag-demo/docker-compose.yml) -- 修改
 
-**验证标准**: `docker compose up backend` 启动后，访问 `http://localhost:8000/docs` 能看到 Swagger 文档，`/api/health` 返回 200，文档上传接口能写入 Postgres。
+**验证标准**: `docker compose up backend` 启动后，访问 `http://localhost:8000/api-docs` 能看到 Swagger 文档，`/api/health` 返回 200，文档上传接口能写入 Postgres。
 
 ---
 
-### Step 4: 异步 Worker 层 (Celery Worker)
+### Step 4: 异步 Worker 层 (BullMQ Worker)
 
 **聚焦模块**: `worker/`
 
 **做什么**:
 
-- 初始化 Celery 应用，broker 连 Redis
-- 实现文档摄取管线，拆成 5 个独立 task:
-  - `tasks/parse_document.py` -- 读文件、抽取纯文本（支持 txt/md/pdf）
-  - `tasks/split_chunks.py` -- 按固定窗口+重叠切块
-  - `tasks/embed_chunks.py` -- 调用 Embedding API 生成向量
-  - `tasks/upsert_vectors.py` -- 写入 Qdrant
-  - `tasks/mark_complete.py` -- 更新 Postgres 任务/文档状态
-- 实现管线编排 `pipeline.py`（用 Celery chain 串联上述 5 步）
-- 创建 `Dockerfile` 用于 Worker 容器化
+- 初始化 Node.js + TypeScript Worker 项目，使用 BullMQ 连接 Redis
+- 实现文档摄取管线，拆成 5 个独立 processor:
+  - `processors/parseDocument.ts` -- 读文件、抽取纯文本（支持 txt/md/pdf，用 pdf-parse）
+  - `processors/splitChunks.ts` -- 按固定窗口+重叠切块
+  - `processors/embedChunks.ts` -- 调用 Embedding API 生成向量
+  - `processors/upsertVectors.ts` -- 写入 Qdrant
+  - `processors/markComplete.ts` -- 更新 Postgres 任务/文档状态
+- 实现管线编排 `pipeline.ts`（用 FlowProducer 串联上述 5 步）
+- 创建 `Dockerfile`（基于 Node.js 20-alpine 多阶段构建）
 - 更新 `docker-compose.yml` 加入 worker 服务
-- 修改 backend 的 `document_service`，在上传完成后调用 `pipeline.delay()`
+- 修改 backend 的 `documentService`，在上传完成后向 BullMQ 队列添加任务
 
 **新增/修改文件**:
 
-- [worker/app/celery_app.py](rag-demo/worker/app/celery_app.py)
-- [worker/app/tasks/parse_document.py](rag-demo/worker/app/tasks/parse_document.py)
-- [worker/app/tasks/split_chunks.py](rag-demo/worker/app/tasks/split_chunks.py)
-- [worker/app/tasks/embed_chunks.py](rag-demo/worker/app/tasks/embed_chunks.py)
-- [worker/app/tasks/upsert_vectors.py](rag-demo/worker/app/tasks/upsert_vectors.py)
-- [worker/app/tasks/mark_complete.py](rag-demo/worker/app/tasks/mark_complete.py)
-- [worker/app/pipeline.py](rag-demo/worker/app/pipeline.py)
+- [worker/package.json](rag-demo/worker/package.json)
+- [worker/tsconfig.json](rag-demo/worker/tsconfig.json)
+- [worker/src/worker.ts](rag-demo/worker/src/worker.ts)
+- [worker/src/processors/parseDocument.ts](rag-demo/worker/src/processors/parseDocument.ts)
+- [worker/src/processors/splitChunks.ts](rag-demo/worker/src/processors/splitChunks.ts)
+- [worker/src/processors/embedChunks.ts](rag-demo/worker/src/processors/embedChunks.ts)
+- [worker/src/processors/upsertVectors.ts](rag-demo/worker/src/processors/upsertVectors.ts)
+- [worker/src/processors/markComplete.ts](rag-demo/worker/src/processors/markComplete.ts)
+- [worker/src/pipeline.ts](rag-demo/worker/src/pipeline.ts)
 - [worker/Dockerfile](rag-demo/worker/Dockerfile)
-- [worker/requirements.txt](rag-demo/worker/requirements.txt)
 - [docker-compose.yml](rag-demo/docker-compose.yml) -- 修改
-- [backend/app/services/document_service.py](rag-demo/backend/app/services/document_service.py) -- 修改
+- [backend/src/services/documentService.ts](rag-demo/backend/src/services/documentService.ts) -- 修改
 
 **验证标准**: 上传一个 txt/md 文件后，Worker 日志能看到 5 步依次执行，Postgres 中文档状态变为 `completed`，Qdrant 中能查到对应向量。
 
@@ -221,29 +221,31 @@ flowchart TB
 
 **做什么**:
 
-- 创建 Agent 统一入口 `service.py`，暴露 `run_chat(question, session_id)` 接口
-- 实现检索模块 `retriever.py` -- 调 Qdrant 搜索 TopK 片段
-- 实现 Prompt 构造模块 `prompt_builder.py` -- 组装系统提示词 + 检索上下文 + 用户问题
-- 实现 LLM 调用模块 `llm_client.py` -- 封装 OpenAI 兼容接口
-- 实现答案格式化 `answer_formatter.py` -- 提取引用来源
+- 初始化 Node.js + TypeScript Agent 项目
+- 创建 Agent 统一入口 `service.ts`，暴露 `runChat(question, sessionId)` 接口
+- 实现检索模块 `retriever.ts` -- 调 Qdrant 搜索 TopK 片段
+- 实现 Prompt 构造模块 `promptBuilder.ts` -- 组装系统提示词 + 检索上下文 + 用户问题
+- 实现 LLM 调用模块 `llmClient.ts` -- 封装 OpenAI 兼容接口（用 openai SDK）
+- 实现答案格式化 `answerFormatter.ts` -- 提取引用来源
 - 预留接口位:
-  - `query_rewriter.py` -- 第一版直接返回原始问题
-  - `reranker.py` -- 第一版直接返回检索结果
-- 修改 backend 的 `chat_service.py`，把 mock 替换为调用 Agent
-- 修改 backend 的 `routers/chat.py`，支持流式返回（SSE）
+  - `queryRewriter.ts` -- 第一版直接返回原始问题
+  - `reranker.ts` -- 第一版直接返回检索结果
+- 修改 backend 的 `chatService.ts`，把 mock 替换为调用 Agent
+- 修改 backend 的 `routers/chat.ts`，支持流式返回（SSE）
 
 **新增/修改文件**:
 
-- [agent/init.py](rag-demo/agent/__init__.py)
-- [agent/service.py](rag-demo/agent/service.py)
-- [agent/retriever.py](rag-demo/agent/retriever.py)
-- [agent/prompt_builder.py](rag-demo/agent/prompt_builder.py)
-- [agent/llm_client.py](rag-demo/agent/llm_client.py)
-- [agent/answer_formatter.py](rag-demo/agent/answer_formatter.py)
-- [agent/query_rewriter.py](rag-demo/agent/query_rewriter.py)
-- [agent/reranker.py](rag-demo/agent/reranker.py)
-- [backend/app/services/chat_service.py](rag-demo/backend/app/services/chat_service.py) -- 修改
-- [backend/app/routers/chat.py](rag-demo/backend/app/routers/chat.py) -- 修改
+- [agent/package.json](rag-demo/agent/package.json)
+- [agent/tsconfig.json](rag-demo/agent/tsconfig.json)
+- [agent/src/service.ts](rag-demo/agent/src/service.ts)
+- [agent/src/retriever.ts](rag-demo/agent/src/retriever.ts)
+- [agent/src/promptBuilder.ts](rag-demo/agent/src/promptBuilder.ts)
+- [agent/src/llmClient.ts](rag-demo/agent/src/llmClient.ts)
+- [agent/src/answerFormatter.ts](rag-demo/agent/src/answerFormatter.ts)
+- [agent/src/queryRewriter.ts](rag-demo/agent/src/queryRewriter.ts)
+- [agent/src/reranker.ts](rag-demo/agent/src/reranker.ts)
+- [backend/src/services/chatService.ts](rag-demo/backend/src/services/chatService.ts) -- 修改
+- [backend/src/routers/chat.ts](rag-demo/backend/src/routers/chat.ts) -- 修改
 
 **验证标准**: 通过 curl 或 Swagger 调用 `POST /api/chat/ask`，能基于已入库的文档内容返回答案并带引用来源。
 

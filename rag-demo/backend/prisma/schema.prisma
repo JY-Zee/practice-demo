@@ -1,0 +1,84 @@
+// ============================================================
+// RAG 知识库系统 - Prisma 数据模型
+// 与 scripts/init_db.sql 中的表结构保持一致
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 文档元数据表：记录上传的文档基本信息及处理状态
+model Document {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fileName    String   @map("file_name") @db.VarChar(500)
+  fileType    String   @map("file_type") @db.VarChar(50)
+  fileSize    BigInt   @default(0) @map("file_size")
+  storagePath String   @map("storage_path") @db.VarChar(1000)
+  status      String   @default("pending") @db.VarChar(50)
+  chunkCount  Int      @default(0) @map("chunk_count")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // 关联关系
+  chunks DocumentChunk[]
+  tasks  IngestionTask[]
+
+  @@index([status], name: "idx_documents_status")
+  @@map("documents")
+}
+
+/// 文档切块表：存储文档拆分后的文本片段，与 Qdrant 向量一一对应
+model DocumentChunk {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  documentId   String   @map("document_id") @db.Uuid
+  chunkIndex   Int      @map("chunk_index")
+  content      String   @db.Text
+  tokenCount   Int      @default(0) @map("token_count")
+  metadataJson Json     @default("{}") @map("metadata_json") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // 关联关系：级联删除
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId], name: "idx_chunks_document_id")
+  @@map("document_chunks")
+}
+
+/// 摄取任务表：跟踪文档处理流水线的执行状态
+model IngestionTask {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  documentId   String    @map("document_id") @db.Uuid
+  status       String    @default("pending") @db.VarChar(50)
+  currentStep  String?   @map("current_step") @db.VarChar(100)
+  errorMessage String?   @map("error_message") @db.Text
+  startedAt    DateTime? @map("started_at") @db.Timestamptz
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // 关联关系：级联删除
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId], name: "idx_tasks_document_id")
+  @@index([status], name: "idx_tasks_status")
+  @@map("ingestion_tasks")
+}
+
+/// 聊天消息表：存储用户与 AI 的问答会话记录
+model ChatMessage {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId      String   @map("session_id") @db.VarChar(100)
+  role           String   @db.VarChar(20)
+  content        String   @db.Text
+  referencesJson Json     @default("[]") @map("references_json") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([sessionId], name: "idx_chat_session_id")
+  @@index([createdAt], name: "idx_chat_created_at")
+  @@map("chat_messages")
+}
