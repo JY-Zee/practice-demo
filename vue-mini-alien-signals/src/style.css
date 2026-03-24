@@ -1,0 +1,237 @@
+/* ======================================================
+   Vue Mini - Alien Signals 演示样式
+   ====================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3347;
+  --text: #e2e8f0;
+  --text-muted: #8892a4;
+  --primary: #7c6af7;
+  --primary-light: #a89ff5;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --cyan: #22d3ee;
+  --radius: 10px;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* Header */
+header {
+  text-align: center;
+  padding: 40px 0 32px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+header h1 { font-size: 2rem; font-weight: 700; color: var(--primary-light); }
+.subtitle { color: var(--text-muted); margin-top: 8px; font-size: 1rem; }
+
+/* Demo sections */
+.demo-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.demo-section h2 {
+  font-size: 1.15rem;
+  color: var(--primary-light);
+  margin-bottom: 10px;
+}
+.demo-section > .desc {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+.demo-section > .desc code {
+  background: var(--surface2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  color: var(--cyan);
+  font-size: 12px;
+}
+
+/* Controls */
+.demo-body { margin-top: 12px; }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+button {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+button:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+input[type=number] {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 13px;
+  margin-left: 6px;
+}
+label { color: var(--text-muted); }
+
+/* Output area */
+.output {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 14px;
+}
+.output-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.label { color: var(--text-muted); min-width: 160px; }
+.value {
+  font-family: var(--mono);
+  color: var(--green);
+  font-weight: 600;
+}
+.value.highlight { color: var(--yellow); }
+.compute-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+.output-row > .desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Log box */
+.log-box {
+  margin-top: 10px;
+  background: #0a0c12;
+  border-radius: 6px;
+  padding: 10px;
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.log-line {
+  padding: 2px 0;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.log-line.highlight { color: var(--yellow); }
+.log-line.separator { color: var(--primary); font-weight: bold; }
+
+/* Diamond graph */
+.demo-graph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0;
+}
+.graph-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+.node {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+  min-width: 120px;
+  border: 1px solid transparent;
+}
+.source-node { background: #1e3a5f; border-color: var(--cyan); color: var(--cyan); }
+.computed-node { background: #2a1e5f; border-color: var(--primary); color: var(--primary-light); }
+.effect-node { background: #1e3a1e; border-color: var(--green); color: var(--green); }
+
+/* Comparison */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+@media (max-width: 700px) { .comparison { grid-template-columns: 1fr; } }
+.compare-col h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--text-muted); }
+.code-block {
+  background: #0a0c12;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #a8c0ff;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.compare-analysis h4 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+.compare-analysis ul { padding-left: 16px; }
+.compare-analysis li { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+
+/* Viz */
+.viz-container {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 10px 0;
+  min-height: 60px;
+}
+.viz-title { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.viz-chain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.viz-node {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+.viz-node.source { background: #1e3a5f; border-color: var(--cyan); color: var(--cyan); }
+.viz-node.effect { background: #1e3a1e; border-color: var(--green); color: var(--green); }
+.viz-arrow { color: var(--text-muted); font-size: 14px; }
