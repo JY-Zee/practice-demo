@@ -28,7 +28,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kb_password}
       POSTGRES_DB: ${POSTGRES_DB:-kb_db}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PG 18+ 镜像：PGDATA=/var/lib/postgresql/18/docker，须挂载父目录 /var/lib/postgresql（勿再挂 .../data）
+      - postgres_data:/var/lib/postgresql
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     restart: unless-stopped
     healthcheck:
