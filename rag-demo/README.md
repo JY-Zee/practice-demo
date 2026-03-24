@@ -107,7 +107,8 @@ rag-demo/
 ### 前置条件
 
 - Docker & Docker Compose
-- Node.js >= 20（后端 + 前端开发）
+- Node.js >= 24（后端 + 前端开发）
+- pnpm >= 10（包管理器）
 - OpenAI 兼容的 API Key（Embedding + LLM）
 
 ### 1. 克隆并配置环境变量
