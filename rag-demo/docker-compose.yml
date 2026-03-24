@@ -10,11 +10,14 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
+    # 官方 qdrant 镜像基于 debian-slim，未安装 curl/wget，原 healthcheck 会一直失败 → unhealthy，
+    # backend 若 depends_on service_healthy 将长时间不启动。改用 bash 探测 6333 是否可连（镜像内自带 bash）。
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333'"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     networks:
       - kb_network
 
