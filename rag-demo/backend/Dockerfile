@@ -3,8 +3,9 @@
 # ============================================================
 
 # ---- 依赖安装阶段 ----
+# 使用 npm 安装 pnpm，避免 Alpine 上 corepack prepare 下载/解析失败
 FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN npm install -g pnpm@10
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
@@ -13,15 +14,15 @@ RUN pnpm prisma:generate
 
 # ---- 构建阶段 ----
 FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN npm install -g pnpm@10
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
 # ---- 运行阶段 ----
+# 仅执行 node，无需 pnpm/corepack
 FROM node:24-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs && \
