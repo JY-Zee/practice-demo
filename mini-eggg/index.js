@@ -2,8 +2,6 @@ const Koa = require("koa");
 
 const app = new Koa();
 
-const a= 1;
-
 try {
   const port = process.env.PORT || 8080;
   const host = process.env.HOST || "0.0.0.0";
