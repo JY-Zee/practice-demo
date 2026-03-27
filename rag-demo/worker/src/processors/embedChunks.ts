@@ -8,6 +8,11 @@ import type { Job } from 'bullmq';
 
 import { env } from '../config/env';
 import { readArtifactJson, writeArtifactJson } from '../lib/artifacts';
+import {
+  assertEmbeddingDimensions,
+  buildEmbeddingRequest,
+  formatEmbeddingError,
+} from '../lib/embedding';
 import { getSingleChildValue } from '../lib/flow';
 import { markProcessingStep } from '../lib/ingestionState';
 import { openaiClient } from '../lib/openai';
@@ -24,11 +29,26 @@ async function createEmbeddings(chunks: ChunkRecord[]) {
 
   for (let index = 0; index < chunks.length; index += env.EMBEDDING_BATCH_SIZE) {
     const batch = chunks.slice(index, index + env.EMBEDDING_BATCH_SIZE);
-    const response = await openaiClient.embeddings.create({
-      model: env.EMBEDDING_MODEL,
-      input: batch.map((chunk) => chunk.content),
-      dimensions: env.EMBEDDING_DIMENSION,
-    });
+    let response;
+
+    try {
+      response = await openaiClient.embeddings.create(
+        buildEmbeddingRequest({
+          model: env.EMBEDDING_MODEL,
+          input: batch.map((chunk) => chunk.content),
+        }),
+      );
+    } catch (error) {
+      throw formatEmbeddingError(error, {
+        apiBase: env.EMBEDDING_API_BASE,
+        model: env.EMBEDDING_MODEL,
+      });
+    }
+
+    assertEmbeddingDimensions(
+      response.data.map((item) => item.embedding),
+      env.EMBEDDING_DIMENSION,
+    );
 
     response.data.forEach((item, batchIndex) => {
       const chunk = batch[batchIndex];

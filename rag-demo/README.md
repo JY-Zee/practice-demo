@@ -109,14 +109,14 @@ rag-demo/
 - Docker & Docker Compose
 - Node.js >= 24（后端 + 前端开发）
 - pnpm >= 10（包管理器）
-- OpenAI 兼容的 API Key（Embedding + LLM）
+- OpenAI 兼容的 API Key 与 Base URL（Embedding + LLM）
 
 ### 1. 克隆并配置环境变量
 
 ```bash
 cd rag-demo
 cp .env.example .env
-# 编辑 .env，填入你的 API Key
+# 编辑 .env，填入你的 API Key、兼容网关地址和模型名
 ```
 
 ### 2. 启动服务栈
@@ -167,8 +167,9 @@ curl http://localhost:6333/healthz
 | `QDRANT_HOST`         | Qdrant 地址        | `qdrant`                 |
 | `QDRANT_COLLECTION`   | 集合名称             | `kb_documents`           |
 | `EMBEDDING_API_KEY`   | Embedding API 密钥 | -                        |
-| `EMBEDDING_MODEL`     | Embedding 模型     | `text-embedding-3-small` |
-| `EMBEDDING_DIMENSION` | 向量维度             | `1536`                   |
+| `EMBEDDING_API_BASE`  | Embedding 兼容网关地址 | 必填，无默认值 |
+| `EMBEDDING_MODEL`     | Embedding 模型     | 必填，无默认值 |
+| `EMBEDDING_DIMENSION` | 向量维度             | 必填，无默认值 |
 | `INGESTION_QUEUE_PREFIX` | BullMQ 队列前缀 | `rag-kb` |
 | `CHUNK_SIZE` | 单个切块窗口大小（字符） | `1000` |
 | `CHUNK_OVERLAP` | 相邻切块重叠字符数 | `200` |
@@ -468,6 +469,13 @@ docker logs -f kb_worker
 # 5. 查询任务状态
 curl http://localhost:8000/api/tasks/<taskId>
 ```
+
+### 4.4 Embedding 配置注意事项
+
+- `EMBEDDING_API_BASE` 必须填写为你的服务器能够访问的 OpenAI 兼容网关地址，不要直接保留 `https://api.openai.com/v1`
+- `EMBEDDING_MODEL` 必须与该兼容网关支持的向量模型一致
+- `EMBEDDING_DIMENSION` 必须与模型实际输出维度保持一致，并在初始化 Qdrant 集合时使用相同值
+- Worker 现在会在启动时提示官方 OpenAI 域名的地区风险；若供应商返回 `403 Country, region, or territory not supported`，请切换到可访问的兼容网关后重新部署
 
 ---
 

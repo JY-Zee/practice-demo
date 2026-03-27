@@ -84,11 +84,11 @@ export async function splitChunks(
     content,
     tokenCount: estimateTokenCount(content),
     metadataJson: {
-      sourceFileName: parsed.fileName,
-      chunkIndex: index,
+      source_file_name: parsed.fileName,
+      chunk_index: index,
       strategy: 'fixed-window-overlap',
-      chunkSize: env.CHUNK_SIZE,
-      chunkOverlap: env.CHUNK_OVERLAP,
+      chunk_size: env.CHUNK_SIZE,
+      chunk_overlap: env.CHUNK_OVERLAP,
     },
   }));
 

@@ -22,6 +22,51 @@ for (const envPath of envCandidates) {
   }
 }
 
+const emptyStringToUndefined = (value: unknown) => {
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined;
+  }
+
+  return value;
+};
+
+const embeddingApiKeySchema = z
+  .string()
+  .min(1, 'EMBEDDING_API_KEY 不能为空')
+  .refine(
+    (value) => value !== 'sk-your-embedding-api-key',
+    'EMBEDDING_API_KEY 仍然是模板值，请替换为真实密钥',
+  );
+
+const embeddingApiBaseSchema = z.preprocess(
+  emptyStringToUndefined,
+  z
+    .string({
+      error:
+        'EMBEDDING_API_BASE 不能为空，请填写你服务器可访问的 OpenAI 兼容网关地址',
+    })
+    .url('EMBEDDING_API_BASE 必须是合法 URL'),
+);
+
+const embeddingModelSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.string({
+    error:
+      'EMBEDDING_MODEL 不能为空，请填写与兼容网关匹配的 embedding 模型名',
+  }),
+);
+
+const embeddingDimensionSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce
+    .number({
+      error:
+        'EMBEDDING_DIMENSION 不能为空，请填写当前 embedding 模型输出的向量维度',
+    })
+    .int()
+    .positive('EMBEDDING_DIMENSION 必须是正整数'),
+);
+
 const envSchema = z.object({
   POSTGRES_USER: z.string().default('kb_user'),
   POSTGRES_PASSWORD: z.string().default('kb_password'),
@@ -36,10 +81,10 @@ const envSchema = z.object({
   QDRANT_HTTP_PORT: z.coerce.number().int().default(6333),
   QDRANT_COLLECTION: z.string().default('kb_documents'),
 
-  EMBEDDING_API_KEY: z.string().min(1, 'EMBEDDING_API_KEY 不能为空'),
-  EMBEDDING_API_BASE: z.string().url().default('https://api.openai.com/v1'),
-  EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
-  EMBEDDING_DIMENSION: z.coerce.number().int().positive().default(1536),
+  EMBEDDING_API_KEY: embeddingApiKeySchema,
+  EMBEDDING_API_BASE: embeddingApiBaseSchema,
+  EMBEDDING_MODEL: embeddingModelSchema,
+  EMBEDDING_DIMENSION: embeddingDimensionSchema,
 
   UPLOAD_DIR: z.string().default('/app/uploads'),
   INGESTION_QUEUE_PREFIX: z.string().default('rag-kb'),

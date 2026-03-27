@@ -10,7 +10,12 @@ import { readArtifactJson } from '../lib/artifacts';
 import { getSingleChildValue } from '../lib/flow';
 import { markProcessingStep } from '../lib/ingestionState';
 import { prisma } from '../lib/prisma';
-import { qdrantClient } from '../lib/qdrant';
+import {
+  buildQdrantChunkPayload,
+  ensureQdrantCollectionCompatibility,
+  formatQdrantOperationError,
+  qdrantClient,
+} from '../lib/qdrant';
 import type {
   EmbeddedChunk,
   EmbeddedChunksArtifact,
@@ -22,6 +27,10 @@ export async function upsertVectors(
   job: Job<IngestionJobPayload, UpsertedVectorsArtifact>,
 ) {
   await markProcessingStep(job.data, 'upsert');
+  await ensureQdrantCollectionCompatibility(
+    env.QDRANT_COLLECTION,
+    env.EMBEDDING_DIMENSION,
+  );
 
   const embeddedArtifact = await getSingleChildValue<EmbeddedChunksArtifact>(job);
   const embeddingPayload = await readArtifactJson<{
@@ -36,10 +45,17 @@ export async function upsertVectors(
   });
 
   if (previousChunks.length > 0) {
-    await qdrantClient.delete(env.QDRANT_COLLECTION, {
-      wait: true,
-      points: previousChunks.map((chunk) => `${documentId}:${chunk.chunkIndex}`),
-    } as any);
+    try {
+      await qdrantClient.delete(env.QDRANT_COLLECTION, {
+        wait: true,
+        points: previousChunks.map((chunk) => `${documentId}:${chunk.chunkIndex}`),
+      } as any);
+    } catch (error) {
+      throw formatQdrantOperationError(error, {
+        action: 'delete',
+        collectionName: env.QDRANT_COLLECTION,
+      });
+    }
   }
 
   await prisma.$transaction([
@@ -61,21 +77,29 @@ export async function upsertVectors(
     }),
   ]);
 
-  await qdrantClient.upsert(env.QDRANT_COLLECTION, {
-    wait: true,
-    points: embeddingPayload.chunks.map((chunk) => ({
-      id: chunk.pointId,
-      vector: chunk.embedding,
-      payload: {
-        documentId,
-        fileName: embeddingPayload.fileName,
-        chunkIndex: chunk.chunkIndex,
-        content: chunk.content,
-        tokenCount: chunk.tokenCount,
-        ...chunk.metadataJson,
-      },
-    })),
-  } as any);
+  try {
+    await qdrantClient.upsert(env.QDRANT_COLLECTION, {
+      wait: true,
+      points: embeddingPayload.chunks.map((chunk) => ({
+        id: chunk.pointId,
+        vector: chunk.embedding,
+        payload: buildQdrantChunkPayload({
+          documentId,
+          fileName: embeddingPayload.fileName,
+          pointId: chunk.pointId,
+          chunkIndex: chunk.chunkIndex,
+          content: chunk.content,
+          tokenCount: chunk.tokenCount,
+          metadataJson: chunk.metadataJson,
+        }),
+      })),
+    } as any);
+  } catch (error) {
+    throw formatQdrantOperationError(error, {
+      action: 'upsert',
+      collectionName: env.QDRANT_COLLECTION,
+    });
+  }
 
   return {
     taskId: job.data.taskId,

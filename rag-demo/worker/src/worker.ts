@@ -10,6 +10,8 @@
 
 import { Worker } from 'bullmq';
 
+import { env } from './config/env';
+import { getEmbeddingStartupWarning } from './lib/embedding';
 import { markComplete } from './processors/markComplete';
 import { embedChunks } from './processors/embedChunks';
 import { parseDocument } from './processors/parseDocument';
@@ -18,6 +20,7 @@ import { upsertVectors } from './processors/upsertVectors';
 import { closeFlowProducer, enqueueIngestionFlow } from './pipeline';
 import { markFailed } from './lib/ingestionState';
 import { prisma } from './lib/prisma';
+import { ensureQdrantCollectionCompatibility } from './lib/qdrant';
 import { bullmqConnection, bullmqPrefix, QUEUE_NAMES } from './lib/queue';
 import type { IngestionJobPayload } from './types/jobs';
 
@@ -102,6 +105,16 @@ workers.forEach(({ label, worker }) => attachLogging(worker as Worker<IngestionJ
 
 async function bootstrap() {
   await Promise.all(workers.map(({ worker }) => worker.waitUntilReady()));
+  await ensureQdrantCollectionCompatibility(
+    env.QDRANT_COLLECTION,
+    env.EMBEDDING_DIMENSION,
+  );
+
+  const embeddingWarning = getEmbeddingStartupWarning(env.EMBEDDING_API_BASE);
+  if (embeddingWarning) {
+    console.warn(embeddingWarning);
+  }
+
   console.log('🚀 Worker 已启动，等待摄取任务...');
 }
 
