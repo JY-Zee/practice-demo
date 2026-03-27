@@ -16,6 +16,7 @@
     "@koa/multer": "^3.0.2",
     "@koa/router": "^13.1.0",
     "@prisma/client": "^6.6.0",
+    "bullmq": "^5.71.1",
     "dotenv": "^16.4.7",
     "koa": "^2.15.3",
     "koa-bodyparser": "^4.4.1",

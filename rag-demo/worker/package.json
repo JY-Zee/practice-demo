@@ -1,0 +1,27 @@
+{
+  "name": "rag-worker",
+  "version": "0.1.0",
+  "description": "RAG 知识库系统 - 异步 Worker（BullMQ + TypeScript）",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "build": "tsc",
+    "start": "node dist/worker.js",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@qdrant/js-client-rest": "^1.17.0",
+    "bullmq": "^5.71.1",
+    "dotenv": "^17.3.1",
+    "openai": "^6.33.0",
+    "pdf-parse": "^2.4.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "prisma": "^6.19.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

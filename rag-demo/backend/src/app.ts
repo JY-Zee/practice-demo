@@ -12,6 +12,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import path from 'path';
 
 import { env } from './config/env';
+import { closeIngestionQueue } from './lib/ingestionQueue';
 import { prisma } from './lib/prisma';
 import { errorHandler } from './middlewares/errorHandler';
 import { healthRouter } from './routers/health';
@@ -79,7 +80,7 @@ const server = app.listen(env.BACKEND_PORT, () => {
 const shutdown = async (signal: string) => {
   console.log(`\n${signal} 收到，开始优雅关闭...`);
   server.close(async () => {
-    await prisma.$disconnect();
+    await Promise.allSettled([prisma.$disconnect(), closeIngestionQueue()]);
     console.log('✅ 服务已关闭');
     process.exit(0);
   });

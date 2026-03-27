@@ -46,6 +46,9 @@ const envSchema = z.object({
   // ---------- 文件存储 ----------
   UPLOAD_DIR: z.string().default('/app/uploads'),
 
+  // ---------- 异步摄取队列 ----------
+  INGESTION_QUEUE_PREFIX: z.string().default('rag-kb'),
+
   // ---------- 后端服务 ----------
   BACKEND_HOST: z.string().default('0.0.0.0'),
   BACKEND_PORT: z.coerce.number().int().default(8000),

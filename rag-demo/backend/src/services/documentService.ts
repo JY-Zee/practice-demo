@@ -6,6 +6,7 @@
 
 import * as documentRepo from '../repositories/documentRepository';
 import * as taskRepo from '../repositories/taskRepository';
+import { enqueueDocumentIngestion } from '../lib/ingestionQueue';
 import type { ListDocumentsQuery } from '../schemas/document';
 
 interface UploadParams {
@@ -27,6 +28,27 @@ export async function uploadDocument(params: UploadParams) {
   });
 
   const task = await taskRepo.createTask({ documentId: doc.id });
+
+  try {
+    await enqueueDocumentIngestion({
+      taskId: task.id,
+      documentId: doc.id,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '文档摄取任务入队失败，请检查 Redis/Worker 状态';
+
+    await Promise.all([
+      taskRepo.updateTask(task.id, {
+        status: 'failed',
+        errorMessage: message,
+        finishedAt: new Date().toISOString(),
+      }),
+      documentRepo.updateDocumentStatus(doc.id, 'failed'),
+    ]);
+
+    throw new Error(message);
+  }
 
   return { document: serializeDocument(doc), task };
 }

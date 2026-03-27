@@ -119,13 +119,13 @@ cp .env.example .env
 # 编辑 .env，填入你的 API Key
 ```
 
-### 2. 启动基础设施
+### 2. 启动服务栈
 
 ```bash
 docker compose up -d
 ```
 
-等待所有服务健康后，PostgreSQL 会自动执行建表脚本。
+等待服务启动完成后，PostgreSQL 会自动执行建表脚本，backend 与 worker 也会自动连接 Redis / Qdrant。
 
 ### 3. 初始化 Qdrant 集合
 
@@ -169,6 +169,10 @@ curl http://localhost:6333/healthz
 | `EMBEDDING_API_KEY`   | Embedding API 密钥 | -                        |
 | `EMBEDDING_MODEL`     | Embedding 模型     | `text-embedding-3-small` |
 | `EMBEDDING_DIMENSION` | 向量维度             | `1536`                   |
+| `INGESTION_QUEUE_PREFIX` | BullMQ 队列前缀 | `rag-kb` |
+| `CHUNK_SIZE` | 单个切块窗口大小（字符） | `1000` |
+| `CHUNK_OVERLAP` | 相邻切块重叠字符数 | `200` |
+| `EMBEDDING_BATCH_SIZE` | Embedding 批量调用大小 | `20` |
 | `LLM_API_KEY`         | LLM API 密钥       | -                        |
 | `LLM_MODEL`           | LLM 模型           | `gpt-4o-mini`            |
 
@@ -178,7 +182,7 @@ curl http://localhost:6333/healthz
 - [x] Step 1: 基础设施层（Docker Compose + 初始化脚本 + 环境变量）
 - [x] Step 2: 数据模型与配置层（Prisma + Zod Schemas + dotenv Config）
 - [x] Step 3: 后端 API 骨架（Koa + TypeScript + 路由 + 服务）
-- [ ] Step 4: 异步 Worker 层（BullMQ 文档摄取管线）
+- [x] Step 4: 异步 Worker 层（BullMQ 文档摄取管线）
 - [ ] Step 5: Agent 服务层（检索 + Prompt + LLM + 引用）
 - [ ] Step 6: 前端层（Next.js + 文档管理 + 问答页）
 - [ ] Step 7: 收尾（完善文档 + 一键脚本）
@@ -409,6 +413,60 @@ curl -X POST http://localhost:8000/api/documents/upload \
 
 # 6. Docker 方式启动
 docker compose up backend
+```
+
+---
+
+## Step 4 详解：异步 Worker 层
+
+> **聚焦模块**: `worker/` + `docker-compose.yml` + `backend/src/services/documentService.ts`
+
+本步骤补齐文档摄取流水线。上传完成后，backend 会先写入 `documents` 与 `ingestion_tasks`，再向 BullMQ 触发队列投递任务；worker 接手后用 `FlowProducer` 串起 5 个独立步骤：`parse -> chunk -> embed -> upsert -> complete`。
+
+### 4.1 流水线结构
+
+```text
+backend upload
+  ↓
+document-ingestion（触发队列）
+  ↓ FlowProducer
+parse -> split -> embed -> upsert -> complete
+```
+
+- `parseDocument`：读取 txt / md / pdf 并提取纯文本
+- `splitChunks`：按固定窗口 + 重叠策略切块
+- `embedChunks`：调用 Embedding API 批量生成向量
+- `upsertVectors`：写入 `document_chunks`，并同步 upsert 到 Qdrant
+- `markComplete`：回写任务与文档状态，清理中间产物
+
+### 4.2 关键实现点
+
+- Worker 使用独立的 TypeScript 项目与 Prisma Client，避免与 backend 运行时耦合
+- 中间结果落盘到 `uploads/.artifacts/<taskId>/`，避免把大文本和大向量直接塞进 Redis
+- 任一步骤失败都会把 `ingestion_tasks.status` 和 `documents.status` 回写为 `failed`
+- backend 上传接口返回结构不变，但现在会真实触发异步摄取
+
+### 4.3 验证方式
+
+```bash
+# 1. 安装 worker 依赖并生成 Prisma Client
+cd worker
+pnpm install
+pnpm prisma:generate
+
+# 2. 启动整套服务
+cd ..
+docker compose up -d
+
+# 3. 上传 txt / md / pdf 文件
+curl -X POST http://localhost:8000/api/documents/upload \
+  -F "file=@test.md"
+
+# 4. 查看 worker 日志，确认 5 步执行
+docker logs -f kb_worker
+
+# 5. 查询任务状态
+curl http://localhost:8000/api/tasks/<taskId>
 ```
 
 ---
