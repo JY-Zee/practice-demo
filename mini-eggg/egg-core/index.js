@@ -41,16 +41,31 @@ module.exports = {
     // 加载各种loader
     middlewareLoader(app);
     console.log("--- [start]:middlewareLoader loaded --->");
-    controllerLoader(app);
-    console.log("--- [start]:controllerLoader loaded --->");
-    serviceLoader(app);
-    console.log("--- [start]:serviceLoader loaded --->");
-    configLoader(app);
-    console.log("--- [start]:configLoader loaded --->");
-    extendLoader(app);
-    console.log("--- [start]:extendLoader loaded --->");
+
     routerSchemaLoader(app);
     console.log("--- [start]:routerSchemaLoader loaded --->");
+
+    controllerLoader(app);
+    console.log("--- [start]:controllerLoader loaded --->");
+
+    serviceLoader(app);
+    console.log("--- [start]:serviceLoader loaded --->");
+
+    configLoader(app);
+    console.log("--- [start]:configLoader loaded --->");
+
+    extendLoader(app);
+    console.log("--- [start]:extendLoader loaded --->");
+
+    // 注册全局中间件
+    try {
+      // 用户自己引用的中间件
+      require(`${app.businessPath}${sep}middleware.js`)(app)
+      console.log("--- [start]:app global middleware loaded --->");
+    } catch (e) {
+      console.error('注册全局中间件失败')
+    }
+
     routerLoader(app); // 最后加载，因为需要依赖其他loader加载的配置
     console.log("--- [start]:routerLoader loaded --->");
 
