@@ -63,7 +63,7 @@ module.exports = {
       require(`${app.businessPath}${sep}middleware.js`)(app)
       console.log("--- [start]:app global middleware loaded --->");
     } catch (e) {
-      console.error('注册全局中间件失败')
+      console.error('注册全局中间件失败', e)
     }
 
     routerLoader(app); // 最后加载，因为需要依赖其他loader加载的配置

@@ -27,7 +27,7 @@ module.exports = (app) => {
     // 提取文件名
     let name = path.resolve(file);
 
-    // 截取路径 app/service/custom-module/custom-service.js => custom-module/custom-service.js
+    // 截取路径 app/service/custom-module/custom-service.js => custom-module/custom-service
     name = name.substring(
       name.lastIndexOf(`service${sep}`) + `service${sep}`.length,
       name.lastIndexOf("."),
@@ -35,6 +35,9 @@ module.exports = (app) => {
 
     // 把 - 改为驼峰式  app.services.customModule.customservice
     name = name.replace(/[_-][a-z]/gi, (s) => s.substring(1).toUpperCase());
+
+    const names = name.split(sep)
+
 
     // 挂在service到内存里
     let tempservice = services;

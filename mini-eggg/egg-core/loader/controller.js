@@ -15,7 +15,7 @@ const { sep } = path;
  */
 module.exports = (app) => {
   // 读取 controller/**/*.js
-  const controllersPath = path.resolve(app.businessPath, `.${sep}controllers`);
+  const controllersPath = path.resolve(app.businessPath, `.${sep}controller`);
   const fileList = glob.sync(
     path.resolve(controllersPath, `.${sep}**${sep}**.js`),
   );
@@ -27,7 +27,7 @@ module.exports = (app) => {
     // 提取文件名
     let name = path.resolve(file);
 
-    // 截取路径 app/controller/custom-module/custom-controller.js => custom-module/custom-controller.js
+    // 截取路径 app/controller/custom-module/custom-controller.js => custom-module/custom-controller
     name = name.substring(
       name.lastIndexOf(`controller${sep}`) + `controller${sep}`.length,
       name.lastIndexOf("."),
@@ -36,8 +36,10 @@ module.exports = (app) => {
     // 把 - 改为驼峰式  app.controllers.customModule.customcontroller
     name = name.replace(/[_-][a-z]/gi, (s) => s.substring(1).toUpperCase());
 
+    const names = name.split(sep)
+
     // 挂在controller到内存里
-    let tempcontroller = controllers;
+    let tempcontroller = controller;
     for (let i = 0, len = names.length; i < len; i++) {
       if (i === len - 1) {
         // 最后一位 就是文件名

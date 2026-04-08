@@ -27,7 +27,7 @@ module.exports = (app) => {
     // 提取文件名
     let name = path.resolve(file);
 
-    // 截取路径 app/middleware/custom-module/custom-middleware.js => custom-module/custom-middleware.js
+    // 截取路径 app/middleware/custom-module/custom-middleware.js => custom-module/custom-middleware
     name = name.substring(
       name.lastIndexOf(`middleware${sep}`) + `middleware${sep}`.length,
       name.lastIndexOf("."),
@@ -35,6 +35,9 @@ module.exports = (app) => {
 
     // 把 - 改为驼峰式  app.middlewares.customModule.customMiddleware
     name = name.replace(/[_-][a-z]/gi, (s) => s.substring(1).toUpperCase());
+
+    const names = name.split(sep)
+
 
     // 挂在middleware到内存里
     let tempMiddleware = middlewares;
