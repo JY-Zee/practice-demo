@@ -4,6 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "_ENV='local' nodemon ./index.js",
+    "beta": "_ENV='beta' node ./index.js",
+    "production": "_ENV='production' node ./index.js",
+
+    "dev:win": "set _ENV='local' && nodemon ./index.js",
+    "beta:win": "set _ENV='beta' && node ./index.js",
+    "production:win": "set _ENV='production' && node ./index.js",
+
+
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
