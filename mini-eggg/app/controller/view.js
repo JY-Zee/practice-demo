@@ -8,7 +8,10 @@ module.exports = (app) => {
      * @param {*} ctx 
      */
     async renderPage(ctx) {
-      await ctx.render(`output${sep}entry.${ctx.params.page}`)
+      await ctx.render(`output${sep}entry.${ctx.params.page}`, {
+        name: app.options?.name,
+        env: app.env.get()
+      })
     }
   }
 }
