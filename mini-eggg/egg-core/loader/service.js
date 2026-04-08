@@ -15,7 +15,7 @@ const { sep } = path;
  */
 module.exports = (app) => {
   // 读取 service/**/*.js
-  const servicesPath = path.resolve(app.businessPath, `.${sep}services`);
+  const servicesPath = path.resolve(app.businessPath, `.${sep}service`);
   const fileList = glob.sync(
     path.resolve(servicesPath, `.${sep}**${sep}**.js`),
   );
@@ -40,7 +40,7 @@ module.exports = (app) => {
 
 
     // 挂在service到内存里
-    let tempservice = services;
+    let tempservice = service;
     for (let i = 0, len = names.length; i < len; i++) {
       if (i === len - 1) {
         // 最后一位 就是文件名
