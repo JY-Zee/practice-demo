@@ -31,7 +31,14 @@
 
 
   const handleClick = () => {
-    axios.get('/api/project/list').then(res => {
+    // axios.get('/api/project/list').then(res => {
+    //  console.log(res)
+    // })
+    axios.request({
+      method: 'POST',
+      url: '/api/project/list',
+      data : {a: 1, b:2 , c: 3}
+    }).then(res => {
       console.log(res)
     })
   }

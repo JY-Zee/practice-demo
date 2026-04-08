@@ -56,8 +56,5 @@ module.exports = (app) => {
       }
     }
   });
-
-  console.log('services', service)
-
   app.service = service;
 };

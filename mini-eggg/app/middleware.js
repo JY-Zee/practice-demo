@@ -18,4 +18,11 @@ module.exports = (app) => {
       trimBlocks: true
     }
   }))
+
+  // 使用koa-parser 解析请求的body
+  const bodyParser = require('koa-bodyparser')
+  app.use(bodyParser({
+    formLimit: '1000mb',
+    enableTypes: ['json', 'form', 'text']
+  }))
 }

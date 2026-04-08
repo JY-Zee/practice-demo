@@ -57,7 +57,5 @@ module.exports = (app) => {
 
   });
 
-  console.log('middlewares', middlewares)
-
   app.middlewares = middlewares;
 };

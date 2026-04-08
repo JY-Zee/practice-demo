@@ -1,32 +1,23 @@
 const path = require('path')
 const { sep } = path
 
+
 module.exports = (app) => {
-  return class ProjectController {
+  const BaseController = require(`.${sep}base`)(app)
+  return class ProjectController extends BaseController {
 
     /**
      * 获取项目列表
      */
     async getList(ctx) {
       const { project: projectService } = app.service
+
+      const body = ctx.request.body
+      console.log('1',body)
+
       const res = await projectService.getList()
-      ctx.status = 200
-      ctx.body = {
-        success: true,
-        data: res,
-        metadata: {}
-      }
+      this.success(ctx, res)
     }
 
-    /**
-     * 渲染页面
-     * @param {*} ctx 
-     */
-    async renderPage(ctx) {
-      await ctx.render(`output${sep}entry.${ctx.params.page}`, {
-        name: app.options?.name,
-        env: app.env.get()
-      })
-    }
   }
 }

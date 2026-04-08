@@ -43,8 +43,6 @@ module.exports = (app) => {
       }
     };
 
-    console.log('extend', extend)
-
     app[name] = require(path.resolve(file))(app)
   });
 }

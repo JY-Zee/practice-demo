@@ -1,5 +1,9 @@
+const path = require('path')
+const { sep } = path
+
 module.exports = (app) => {
-    return class ProjectService {
+    const BaseService = require(`.${sep}base`)(app)
+    return class ProjectService extends BaseService {
         async getList() {
             return [{
                 name: "project1"
