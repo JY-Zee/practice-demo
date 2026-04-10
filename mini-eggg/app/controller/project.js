@@ -11,11 +11,8 @@ module.exports = (app) => {
      */
     async getList(ctx) {
       const { project: projectService } = app.service
-
-      const body = ctx.request.body
-      console.log('1',body)
-
       const res = await projectService.getList()
+      app.logger.info('project list', res)
       this.success(ctx, res)
     }
 

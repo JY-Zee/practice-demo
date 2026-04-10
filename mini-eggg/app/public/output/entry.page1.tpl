@@ -8,7 +8,9 @@
   <link href="/static/normalize.css" rel="stylesheet">
   </link>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
+  <script src="
+  https://cdn.jsdelivr.net/npm/js-md5@0.8.3/src/md5.min.js
+  "></script>
 
 </head>
 
@@ -31,15 +33,20 @@
 
 
   const handleClick = () => {
-    // axios.get('/api/project/list').then(res => {
-    //  console.log(res)
-    // })
+    // 生成签名
+    const  key = '1234567890';
+    const st = Date.now();
+    const sSign = md5(`${key}_${st}`);
+
     axios.request({
       method: 'POST',
       url: '/api/project/list',
-      data : {a: 1, b:2 , c: 3}
+      data : {a: 1, b:2 , c: 3},
+      headers: {
+        's_sign': sSign,
+        's_t': st
+      }
     }).then(res => {
-      console.log(res)
     })
   }
 </script>

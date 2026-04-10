@@ -1,0 +1,26 @@
+搭建mini-egg-core: 内核
+- index.js
+  - 初始化各种loader
+  - 编写各种loader
+  - 初始化环境变量的配置
+  - 加载各种loader
+  - 注册全局中间件 由用户提供
+  - 加载routerLoader
+  - 启动服务,是否有问题
+  - 
+- 编写业务后端代码(app文件夹)
+  - eslint oxc等格式化工具
+  - git 提交规则校验工具
+  - 创建controller,service,extend,middlewares,router,public文件夹
+    - api
+      - router, controller, service
+    - page
+      - router, controller, public-output页面模版
+  - 编写controller,service,extend,middlewares,router,public文件
+  - 添加代码健壮性
+    - 添加error-handle错误兜底
+    - 添加logger插件
+    - 验证接口是否有效
+      - 通过 api-sign-verify 中间件验证签名是否合法 (通过headers的s_sign和s_t参数验证)
+      - 其他方式,ip白名单,token等校验方式, 可根据需求自行添加
+    - 接口参数校验 router-schema

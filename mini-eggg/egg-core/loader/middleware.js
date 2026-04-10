@@ -7,14 +7,14 @@ const { sep } = path;
 /**
  * 加载所有中间件
  * @param {*} app - 应用实例
- * 可通过 app.middleware.[目录].[文件] 访问到中间件
+ * 可通过 app.middlewares.[目录].[文件] 访问到中间件
  *
- * app/middleware
+ * app/middlewares
  * -- custom-module
  *    -- custom-middleware.js
  */
 module.exports = (app) => {
-  // 读取 middleware/**/*.js
+  // 读取 middlewares/**/*.js
   const middlewaresPath = path.resolve(app.businessPath, `.${sep}middlewares`);
   const fileList = glob.sync(
     path.resolve(middlewaresPath, `.${sep}**${sep}**.js`),
@@ -29,7 +29,7 @@ module.exports = (app) => {
 
     // 截取路径 app/middleware/custom-module/custom-middleware.js => custom-module/custom-middleware
     name = name.substring(
-      name.lastIndexOf(`middleware${sep}`) + `middleware${sep}`.length,
+      name.lastIndexOf(`middlewares${sep}`) + `middlewares${sep}`.length,
       name.lastIndexOf("."),
     );
 

@@ -14,7 +14,7 @@ const { sep } = path;
  */
 module.exports = (app) => {
   // 读取 extend/**/*.js
-  const extendsPath = path.resolve(app.businessPath, `.${sep}extends`);
+  const extendsPath = path.resolve(app.businessPath, `.${sep}extend`);
   const fileList = glob.sync(
     path.resolve(extendsPath, `.${sep}**${sep}**.js`),
   );
