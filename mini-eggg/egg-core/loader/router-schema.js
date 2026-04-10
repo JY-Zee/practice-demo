@@ -18,14 +18,14 @@ module.exports = (app) => {
   // 读取 routerSchema/**/*.js
   const routerSchemaPath = path.resolve(
     app.businessPath,
-    `.${sep}routerSchema`,
+    `.${sep}router-schema`,
   );
   const fileList = glob.sync(
     path.resolve(routerSchemaPath, `.${sep}**${sep}**.js`),
   );
 
   // 注册所有router-schema,使得可以 app.routerSchema 访问
-  const routerSchema = {};
+  let routerSchema = {};
 
   fileList.forEach(file => {
     routerSchema = {

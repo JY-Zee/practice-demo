@@ -23,4 +23,4 @@
     - 验证接口是否有效
       - 通过 api-sign-verify 中间件验证签名是否合法 (通过headers的s_sign和s_t参数验证)
       - 其他方式,ip白名单,token等校验方式, 可根据需求自行添加
-    - 接口参数校验 router-schema
+    - 接口参数校验 json-schema  ajv (这里需要验证 $schema 使用哪一个版本, ajv 会对 $schema 有要求)

@@ -25,7 +25,7 @@ module.exports = (app) => {
       // 因为报错了, 它不会经过controller包装, 所以需要手动包装
       const resBody = {
         success: false,
-        code: 500,
+        code: 50000,
         message: '服务异常,请稍后再试'
       }
       // 网络正常 200 但是业务异常 需要手动包装

@@ -40,7 +40,7 @@
 
     axios.request({
       method: 'POST',
-      url: '/api/project/list',
+      url: '/api/project/list?proj_key=21',
       data : {a: 1, b:2 , c: 3},
       headers: {
         's_sign': sSign,
