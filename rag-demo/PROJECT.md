@@ -16,6 +16,8 @@
 | 向量数据库 | Qdrant |
 | Embedding | OpenAI 兼容接口 |
 | LLM | OpenAI 兼容接口 (gpt-4o-mini) |
+| 前端框架 | Next.js 15 (App Router) + React 19 + TypeScript |
+| 前端 UI | Ant Design 5 + TanStack Query v5 |
 | 容器编排 | Docker Compose |
 
 ## 架构概览
@@ -40,7 +42,7 @@
 | 数据模型 | `backend/prisma/` + `*/src/schemas/` | Prisma ORM + Zod Schema + 环境配置 | [docs/data-model.md](docs/data-model.md) |
 | 摄取流水线 | `worker/src/processors/` | 解析→切块→向量化→入库的完整数据流 | [docs/ingestion-pipeline.md](docs/ingestion-pipeline.md) |
 | Agent 服务层 | `backend/src/agent/` | 检索 + Prompt 组装 + LLM 调用 | [docs/agent.md](docs/agent.md) |
-| 前端 | `frontend/` (待实现) | Next.js 管理台与问答界面 | - |
+| 前端 | `frontend/` | Next.js 管理台与问答界面（上传 / 列表 / 问答） | [docs/frontend.md](docs/frontend.md) |
 
 ## 当前进度
 
@@ -49,7 +51,7 @@
 - [x] Layer 3: 后端 API（Koa 路由 + 服务 + 数据访问层）
 - [x] Layer 4: 异步 Worker（BullMQ 文档摄取管线）
 - [x] Layer 5: Agent 服务层（语义检索 + LLM 问答）
-- [ ] Layer 6: 前端（Next.js 管理台）
+- [x] Layer 6: 前端（Next.js App Router + AntD + TanStack Query 管理台）
 
 ## 核心数据流
 
@@ -81,4 +83,7 @@
 cp .env.example .env   # 填入真实 API Key
 docker compose up -d   # 启动基础设施
 python scripts/init_qdrant.py  # 初始化向量集合
+
+# 前端
+cd frontend && cp .env.local.example .env.local && pnpm install && pnpm dev
 ```

@@ -29,8 +29,10 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
+    // multer 1.x 默认用 latin1 解码 UTF-8 中文文件名，需手动修复
+    const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+    cb(null, `${uniqueSuffix}${path.extname(originalname)}`);
   },
 });
 
@@ -81,8 +83,11 @@ router.post('/upload', upload.single('file'), async (ctx) => {
     return;
   }
 
+  // multer 1.x 默认用 latin1 解码 UTF-8 中文文件名，需手动修复
+  const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
   const result = await documentService.uploadDocument({
-    originalName: file.originalname,
+    originalName,
     mimetype: file.mimetype,
     size: file.size,
     storagePath: file.path,
