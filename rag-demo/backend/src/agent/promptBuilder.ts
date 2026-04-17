@@ -24,7 +24,11 @@ export function buildPrompt(
   chatHistory?: ChatHistoryItem[],
 ): PromptPayload {
   const historyText = buildHistoryBlock(chatHistory);
-  const trimmedContexts = trimContexts(question, contexts, historyText.length);
+  const trimmedContexts = trimContexts(
+    question,
+    contexts,
+    historyText.length > 0 ? historyText.length + 2 : 0,
+  );
 
   const contextBlock = trimmedContexts
     .map((ctx, index) => {

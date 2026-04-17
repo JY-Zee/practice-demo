@@ -1,15 +1,28 @@
 /**
  * 聊天业务服务
  *
- * 当前为 mock 实现，Step 5 接入 Agent 后会替换为真实的 RAG 问答链路。
+ * 链路 1：接入 Agent 服务层（当前 Agent 内部为骨架 + 占位实现），
+ * 负责：
+ * 1. 分配/复用 sessionId
+ * 2. 持久化用户消息 → 调用 Agent → 持久化助手消息
+ * 3. 将 Agent 返回结构转为 API 响应
+ *
+ * 后续链路 2~3 只会替换 Agent 内部实现，此处保持稳定。
  */
 
+import { runChat } from '../agent/service';
 import * as chatRepo from '../repositories/chatRepository';
-import type { AskQuestionInput, ListChatMessagesQuery } from '../schemas/chat';
+import type { AskQuestionInput, ListChatMessagesQuery, Reference } from '../schemas/chat';
 
-/** 提问（mock）：保存用户消息 + 返回 mock 回答 */
 export async function askQuestion(input: AskQuestionInput) {
   const sessionId = input.sessionId ?? randomSessionId();
+
+  const agentResult = await runChat({
+    question: input.question,
+    sessionId,
+  });
+
+  const references: Reference[] = agentResult.references;
 
   await chatRepo.createMessage({
     sessionId,
@@ -17,25 +30,11 @@ export async function askQuestion(input: AskQuestionInput) {
     content: input.question,
   });
 
-  const mockAnswer =
-    `这是一个 mock 回答。您的问题是：「${input.question}」。` +
-    '当 Agent 服务层完成后，这里将返回基于文档检索的真实回答。';
-
-  const mockReferences = [
-    {
-      documentId: '00000000-0000-0000-0000-000000000000',
-      documentName: 'mock-document.md',
-      chunkIndex: 0,
-      content: '这是模拟的引用片段内容...',
-      score: 0.95,
-    },
-  ];
-
   const reply = await chatRepo.createMessage({
     sessionId,
     role: 'assistant',
-    content: mockAnswer,
-    referencesJson: mockReferences,
+    content: agentResult.answer,
+    referencesJson: references,
   });
 
   return {
@@ -43,8 +42,9 @@ export async function askQuestion(input: AskQuestionInput) {
     sessionId,
     role: reply.role,
     content: reply.content,
-    referencesJson: mockReferences,
+    referencesJson: references,
     createdAt: reply.createdAt.toISOString(),
+    meta: agentResult.meta,
   };
 }
 

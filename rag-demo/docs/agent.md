@@ -150,15 +150,9 @@ const scored = await fetch('http://reranker:8080/rerank', {
 
 `rerankContexts` 接口签名不变，service.ts 无需改动。
 
-### 接入多轮记忆
+### 多轮记忆（已实现）
 
-在 `queryRewriter.ts` 中引入 `sessionId`，从 `chatRepository` 读取历史消息拼入改写上下文：
-
-```typescript
-export async function rewriteQuery(question: string, sessionId?: string): Promise<string>
-```
-
-同步更新 `AgentChatInput` 类型，service.ts 透传 `sessionId`。
+多轮记忆已在 `service.ts` 中实现：每次问答前从 `chatRepository.getRecentMessages` 拉取最近 6 条消息，注入 `queryRewriter` 和 `promptBuilder`。详见本文档下方的「多轮记忆（Multi-turn Memory）」一节。
 
 ### 抽成独立包
 
