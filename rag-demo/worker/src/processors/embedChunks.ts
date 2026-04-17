@@ -2,6 +2,7 @@
  * 第三步：为切块生成向量
  */
 
+import crypto from 'crypto';
 import path from 'path';
 
 import type { Job } from 'bullmq';
@@ -83,7 +84,7 @@ export async function embedChunks(
 
   const payload: EmbeddedChunk[] = embeddedChunks.map((chunk) => ({
     ...chunk,
-    pointId: `${documentId}:${chunk.chunkIndex}`,
+    pointId: crypto.randomUUID(),
   }));
 
   const embeddingsPath = path.join(splitArtifact.artifactDir, 'embeddings.json');

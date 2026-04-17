@@ -20,6 +20,9 @@ todos:
   - id: docs-plan
     content: 执行阶段创建 README 并将本计划保存到 rag-demo 当前目录
     status: pending
+  - id: step6-retrieval-qa
+    content: 完成检索问答链路（Agent 服务层）：retriever 接 Qdrant、promptBuilder 含裁剪、llmClient 接真实 LLM、answerFormatter 含引用；端到端验证通过；文档同步（PROJECT.md / README.md / docs/agent.md / docs/backend.md）
+    status: completed
 isProject: false
 ---
 
@@ -456,7 +459,7 @@ README 第一版建议包含：
   - 完成目录、README、`.env.example`、前后端/worker 启动骨架
 2. `M2 文档摄取链路`
   - 完成上传、解析、切块、Embedding、入库、任务状态
-3. `M3 检索问答链路`
+3. `M3 检索问答链路` **[已完成 Step 5/6]**
   - 完成检索、Prompt、LLM、引用展示
 4. `M4 可观测与扩展预留`
   - 完成日志、脚本、Agent 接口抽象、后续扩展点

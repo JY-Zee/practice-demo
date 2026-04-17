@@ -70,6 +70,7 @@ rag-demo/
 │       ├── schemas/            # Zod 请求/响应 Schema
 │       ├── routers/            # API 路由（@koa/router）
 │       ├── services/           # 业务逻辑
+│       ├── agent/              # Agent 服务层（检索 + Prompt + LLM）
 │       └── repositories/       # 数据访问层（Prisma Client）
 ├── worker/                     # 异步任务（BullMQ）
 │   ├── Dockerfile
@@ -79,17 +80,6 @@ rag-demo/
 │       ├── worker.ts           # Worker 入口
 │       ├── pipeline.ts         # 任务编排
 │       └── processors/         # 各步骤处理器
-├── agent/                      # Agent 服务层（TypeScript）
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       ├── service.ts          # 统一入口
-│       ├── retriever.ts        # Qdrant 检索
-│       ├── promptBuilder.ts    # Prompt 组装
-│       ├── llmClient.ts        # LLM 调用（openai SDK）
-│       ├── answerFormatter.ts  # 答案与引用格式化
-│       ├── queryRewriter.ts    # 查询改写（预留）
-│       └── reranker.ts         # 重排序（预留）
 ├── frontend/                   # 前端（Next.js）
 │   ├── Dockerfile
 │   ├── package.json
@@ -152,8 +142,8 @@ curl http://localhost:6333/healthz
 1. **文档上传** -- 支持 txt / md / pdf，上传后自动触发处理
 2. **文档摄取** -- 解析 → 切块 → Embedding → 写入 Qdrant
 3. **任务状态** -- 实时查看文档处理进度（待处理/处理中/已完成/失败）
-4. **知识问答** -- 基于已入库文档的语义检索 + LLM 生成回答
-5. **引用溯源** -- 答案附带引用片段和来源文档名
+4. **知识问答** -- 基于已入库文档的语义检索 + LLM 生成回答（已接通 Qdrant + LLM）
+5. **引用溯源** -- 答案附带引用片段和来源文档名（已接通 Qdrant + LLM）
 
 ## 环境变量说明
 
@@ -184,7 +174,7 @@ curl http://localhost:6333/healthz
 - [x] Step 2: 数据模型与配置层（Prisma + Zod Schemas + dotenv Config）
 - [x] Step 3: 后端 API 骨架（Koa + TypeScript + 路由 + 服务）
 - [x] Step 4: 异步 Worker 层（BullMQ 文档摄取管线）
-- [ ] Step 5: Agent 服务层（检索 + Prompt + LLM + 引用）
+- [x] Step 5: Agent 服务层（检索 + Prompt + LLM + 引用）
 - [ ] Step 6: 前端层（Next.js + 文档管理 + 问答页）
 - [ ] Step 7: 收尾（完善文档 + 一键脚本）
 
@@ -476,6 +466,78 @@ curl http://localhost:8000/api/tasks/<taskId>
 - `EMBEDDING_MODEL` 必须与该兼容网关支持的向量模型一致
 - `EMBEDDING_DIMENSION` 必须与模型实际输出维度保持一致，并在初始化 Qdrant 集合时使用相同值
 - Worker 现在会在启动时提示官方 OpenAI 域名的地区风险；若供应商返回 `403 Country, region, or territory not supported`，请切换到可访问的兼容网关后重新部署
+
+---
+
+---
+
+## Step 5 详解：Agent 服务层
+
+> **聚焦模块**: `backend/src/agent/`
+
+本步骤为系统补齐问答核心链路——在 backend 内部新增 `agent/` 子目录，封装「语义检索 → Prompt 组装 → LLM 调用 → 引用格式化」全流程。`chatService` 通过调用 `runChat` 接入，不改变接口契约。
+
+### 新增文件一览
+
+```
+backend/src/agent/
+├── types.ts           # Agent 内部类型（AgentChatInput / RetrievedContext / PromptPayload / LlmCompletion / AgentAnswer）
+├── service.ts         # 统一入口 runChat，串联六步链路
+├── queryRewriter.ts   # 查询改写（占位，直通）
+├── retriever.ts       # 语义检索（真实，Qdrant TopK）
+├── reranker.ts        # 重排序（占位，直通）
+├── promptBuilder.ts   # Prompt 组装（真实，含字符裁剪）
+├── llmClient.ts       # LLM 调用（真实，OpenAI 兼容）
+└── answerFormatter.ts # 答案 + 引用来源格式化（真实）
+```
+
+### 5.1 六步问答链路
+
+```text
+runChat(question, sessionId)
+  ├── rewriteQuery        → 改写后问题（占位：直通）
+  ├── retrieveContexts    → RetrievedContext[]（Qdrant TopK = 5）
+  ├── rerankContexts      → RetrievedContext[]（占位：直通）
+  ├── buildPrompt         → PromptPayload（system + user，字符上限 12000）
+  ├── generateAnswer      → LlmCompletion（content + usage + model）
+  └── formatAgentAnswer   → AgentAnswer（answer + references + meta）
+```
+
+### 5.2 关键实现点
+
+- **Embedding + Qdrant 检索**：调用 `EMBEDDING_API_BASE` 生成问题向量，校验维度后在 Qdrant 做近邻搜索
+- **Prompt 字符裁剪**：`MAX_PROMPT_CHARS = 12000`，保留高分片段，防止超出模型上下文窗口
+- **LLM 调用**：`temperature=0.2, max_tokens=1024`，answer 中的 `[1][2]` 角标由 system prompt 指令生成
+- **引用来源**：`answerFormatter` 将 `contexts` 映射为 `Reference[]`，随 ChatMessage 持久化
+
+### 5.3 响应字段说明
+
+```json
+{
+  "content": "根据文档，Qdrant 是一个向量数据库…[1]",
+  "referencesJson": "[{\"documentId\":\"…\",\"chunkIndex\":0,\"score\":0.89,…}]",
+  "meta": {
+    "model": "gpt-4o-mini",
+    "retrievedCount": 3,
+    "topK": 5,
+    "usage": { "promptTokens": 512, "completionTokens": 128, "totalTokens": 640 }
+  }
+}
+```
+
+### 5.4 验证方式
+
+```bash
+# 上传文档后提问
+curl -sS -X POST http://localhost:8000/api/chat/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"这个项目用什么做向量检索？"}' | python3 -m json.tool
+
+# 查看 Agent 埋点日志
+docker logs kb_backend --tail 40
+```
+
+期望：`content` 包含真实名词（如 Qdrant），`referencesJson` 中 `documentId` 非全零，日志中出现 `[retriever]` 和 `[llmClient]` 埋点。
 
 ---
 

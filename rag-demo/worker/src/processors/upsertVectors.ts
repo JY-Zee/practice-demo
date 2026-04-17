@@ -39,23 +39,18 @@ export async function upsertVectors(
   }>(embeddedArtifact.embeddingsPath);
 
   const { documentId } = job.data;
-  const previousChunks = await prisma.documentChunk.findMany({
-    where: { documentId },
-    select: { chunkIndex: true },
-  });
-
-  if (previousChunks.length > 0) {
-    try {
-      await qdrantClient.delete(env.QDRANT_COLLECTION, {
-        wait: true,
-        points: previousChunks.map((chunk) => `${documentId}:${chunk.chunkIndex}`),
-      } as any);
-    } catch (error) {
-      throw formatQdrantOperationError(error, {
-        action: 'delete',
-        collectionName: env.QDRANT_COLLECTION,
-      });
-    }
+  try {
+    await qdrantClient.delete(env.QDRANT_COLLECTION, {
+      wait: true,
+      filter: {
+        must: [{ key: 'document_id', match: { value: documentId } }],
+      },
+    } as any);
+  } catch (error) {
+    throw formatQdrantOperationError(error, {
+      action: 'delete',
+      collectionName: env.QDRANT_COLLECTION,
+    });
   }
 
   await prisma.$transaction([
