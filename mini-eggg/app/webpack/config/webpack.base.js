@@ -30,10 +30,6 @@ glob.sync(entryList).forEach(file => {
   }))
 })
 
-
-console.log('entry', entry)
-console.log('htmlPluginList', htmlPluginList)
-
 /**
  * 
  * webpack 基础配置
@@ -82,12 +78,9 @@ module.exports = {
       use: 'file-loader'
     }]
   },
-  // 产物输出路径
+  // 产物输出路径,因为开发环境与生产环境中输出的路径不同，所以需要在各自环境中进行配置
   output: {
-    filename: 'js/[name]_[chunkhash:8].bundle.js',
-    path: path.join(process.cwd(), './app/public/dist/prod'),
-    publicPath: '/dist/prod',
-    crossOriginLoading: 'anonymous',
+
   },
   // 配置模块解析的具体行为(定义webpack在打包时,如何找到并解析具体模块的路径)
   resolve: {
@@ -156,9 +149,13 @@ module.exports = {
           reuseExistingChunk: true, // 重用已有的chunk，不用重新打包
         },
       },
-    }
+    },
+    // 将 webpack 运行时产生的代码，打包到一个单独的 chunk 中
+    runtimeChunk: true
   },
   // 配置 其他(如watch,stats等)
   watch: true,
   // 配置其他(如watch,stats等)
+
+
 }
